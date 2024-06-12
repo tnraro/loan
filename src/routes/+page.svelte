@@ -1,4 +1,6 @@
 <script lang="ts">
+  import { onMount } from 'svelte';
+
   let 억_임차보증금 = $state(2.1);
   let 만_월세 = $state(0);
   let 만_관리비 = $state(10);
@@ -18,6 +20,35 @@
   let 만_월지출 = $derived(
     만_월세 + 만_관리비 + 만_신용대출_월이자 + 만_버팀목_월이자,
   );
+
+  let name = $state('');
+
+  interface Item {
+    id: string;
+    억_임차보증금: number;
+    만_월세: number;
+    만_관리비: number;
+    name: string;
+  }
+
+  function getItems(): Item[] {
+    return JSON.parse(localStorage.getItem('items') ?? '[]');
+  }
+  function setItems(items: Item[]) {
+    localStorage.setItem('items', JSON.stringify(items));
+  }
+  function addItem(item: Item) {
+    setItems([...getItems(), item]);
+  }
+  function removeItem(id: string) {
+    setItems(getItems().filter((item) => item.id !== id));
+  }
+  let items = $state<Item[]>([]);
+
+  onMount(() => {
+    items = getItems();
+    console.log(items);
+  });
 </script>
 
 <main>
@@ -111,6 +142,54 @@
     <div>
       2인 갹출: <span class="value">{Math.round(만_월지출 / 2)}만</span>
     </div>
+  </div>
+  <form
+    onsubmit={(e) => {
+      e.preventDefault();
+
+      addItem({
+        id: crypto.randomUUID(),
+        억_임차보증금,
+        만_월세,
+        만_관리비,
+        name,
+      });
+
+      items = getItems();
+    }}
+  >
+    <label>
+      이름
+      <input bind:value={name} />
+    </label>
+    <button>저장</button>
+  </form>
+
+  <div class="items">
+    {#each items as item}
+      <div>
+        {item.name}
+        {#if item.만_월세}
+          월세 {item.억_임차보증금}억/{item.만_월세}
+        {:else}
+          전세 {item.억_임차보증금}억
+        {/if}
+        <button
+          onclick={() => {
+            name = item.name;
+            만_관리비 = item.만_관리비;
+            만_월세 = item.만_월세;
+            억_임차보증금 = item.억_임차보증금;
+          }}>가져오기</button
+        >
+        <button
+          onclick={() => {
+            removeItem(item.id);
+            items = getItems();
+          }}>지우기</button
+        >
+      </div>
+    {/each}
   </div>
 </main>
 
